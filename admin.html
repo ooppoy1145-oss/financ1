@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Finance Pro — แอดมิน</title>
+  <title>Finance Pro — แอดมินหลังบ้าน</title>
   <meta name="description" content="ระบบจัดการลูกค้าและสัญญาไฟแนนซ์ สำหรับผู้ดูแลระบบ">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/admin.css">
@@ -15,6 +15,9 @@
     <header class="admin-header" id="adminHeader"></header>
 
     <div class="container-wide">
+      <!-- Live Sync Status Banner -->
+      <div id="adminSyncStatus"></div>
+
       <!-- Stats -->
       <div class="admin-stats" id="adminStats"></div>
 
@@ -48,11 +51,36 @@
     </div>
   </div>
 
-  <!-- Settings Modal -->
-  <div class="modal-overlay admin-modal" id="settingsModal">
-    <div class="modal-content">
+  <!-- Summary Dashboard Modal (3. แดชบอร์ดสรุปยอด รายวัน, รายสัปดาห์, รายเดือน) -->
+  <div class="modal-overlay admin-modal" id="summaryDashboardModal">
+    <div class="modal-content modal-lg">
       <div class="modal-header">
-        <h3 class="modal-title">⚙️ ข้อมูลติดต่อเจ้าหน้าที่ & พร้อมเพย์</h3>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1.3rem;">📊</span>
+          <h3 class="modal-title">แดชบอร์ดสรุปยอดค่างวดลูกค้า</h3>
+        </div>
+        <button class="modal-close" onclick="closeSummaryDashboardModal()">✕</button>
+      </div>
+      <div class="modal-body" id="summaryDashboardBody"></div>
+    </div>
+  </div>
+
+  <!-- Customer Quick Status Modal (3.3 ดูสถานะว่าลูกค้าจ่ายมาแล้วหรือยัง) -->
+  <div class="modal-overlay admin-modal" id="customerQuickStatusModal">
+    <div class="modal-content" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="quickStatusTitle">สถานะการชำระเงิน</h3>
+        <button class="modal-close" onclick="closeQuickStatusModal()">✕</button>
+      </div>
+      <div class="modal-body" id="quickStatusBody"></div>
+    </div>
+  </div>
+
+  <!-- Settings Modal (5. รูป QR ของร้าน, 6. Bank API, LINE, ข้อมูลติดต่อ) -->
+  <div class="modal-overlay admin-modal" id="settingsModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ ตั้งค่าระบบ, ข้อมูลติดต่อ, QR ร้าน & Bank API</h3>
         <button class="modal-close" onclick="closeSettingsModal()">✕</button>
       </div>
       <div class="modal-body" id="settingsModalBody"></div>
@@ -61,6 +89,7 @@
 
   <script src="js/data.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/bank-api.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

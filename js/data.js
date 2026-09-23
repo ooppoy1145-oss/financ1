@@ -1,6 +1,6 @@
 /* ============================================
    Finance System — Data Management Layer
-   localStorage CRUD for Customers & Contracts
+   localStorage + Real-time Multi-Device Sync
    ============================================ */
 
 const FinanceDB = {
@@ -10,6 +10,11 @@ const FinanceDB = {
     SETTINGS: 'finance_settings',
     SESSION: 'finance_session'
   },
+
+  /* ─── Real-Time Sync & Multi-Device State ─── */
+  _syncListeners: [],
+  _broadcastChannel: null,
+  _syncPollingTimer: null,
 
   /* ─── Initialize ─── */
   init() {
@@ -30,7 +35,16 @@ const FinanceDB = {
         contactLine: '@financepro',
         contactEmail: 'contact@financepro.com',
         promptpayId: '0812345678',
-        promptpayName: 'บริษัท ไฟแนนซ์โปร จำกัด'
+        promptpayName: 'บริษัท ไฟแนนซ์โปร จำกัด',
+        shopQrImage: '', // Custom Shop QR (Base64)
+        lineChannelId: '', // LINE Login Channel ID
+        lineCallbackUrl: '',
+        bankApiProvider: 'slipok', // 'slipok' | 'easyslip' | 'direct' | 'mock'
+        bankApiKey: '',
+        bankApiSecret: '',
+        cloudSyncEnabled: false,
+        cloudSyncUrl: '',
+        cloudSyncApiKey: ''
       }));
     }
 
@@ -38,6 +52,127 @@ const FinanceDB = {
     if (!localStorage.getItem(this.KEYS.CUSTOMERS)) {
       localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify([]));
       this.seedDemoData();
+    }
+
+    // Start multi-device / multi-tab sync
+    this.initSync();
+  },
+
+  /* ─── Real-Time Sync & Multi-Device Engine ─── */
+  initSync() {
+    // 1. BroadcastChannel for cross-tab & cross-window real-time sync
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        this._broadcastChannel = new BroadcastChannel('finance_pro_sync');
+        this._broadcastChannel.onmessage = (event) => {
+          this.handleIncomingSync(event.data);
+        };
+      } catch (e) {
+        console.warn('BroadcastChannel error:', e);
+      }
+    }
+
+    // 2. Storage event listener for window-to-window sync
+    window.addEventListener('storage', (e) => {
+      if (e.key === this.KEYS.CUSTOMERS || e.key === this.KEYS.SETTINGS) {
+        this.notifyListeners({ type: 'storage_change', key: e.key, timestamp: Date.now() });
+      }
+    });
+
+    // 3. Cloud sync polling if configured
+    this.checkCloudSync();
+  },
+
+  onSync(callback) {
+    if (typeof callback === 'function') {
+      this._syncListeners.push(callback);
+    }
+  },
+
+  notifyListeners(data) {
+    this._syncListeners.forEach(cb => {
+      try { cb(data); } catch (err) { console.error('Sync listener error:', err); }
+    });
+  },
+
+  notifyChange(action, data) {
+    const payload = { action, data, timestamp: Date.now() };
+
+    // Broadcast to other tabs/windows
+    if (this._broadcastChannel) {
+      try {
+        this._broadcastChannel.postMessage(payload);
+      } catch (e) {}
+    }
+
+    this.notifyListeners(payload);
+
+    // Push to cloud if enabled
+    this.pushToCloud(payload);
+  },
+
+  handleIncomingSync(message) {
+    this.notifyListeners(message);
+  },
+
+  async pushToCloud(change) {
+    const settings = this.getSettings();
+    if (!settings.cloudSyncEnabled || !settings.cloudSyncUrl) return;
+
+    try {
+      const payload = {
+        customers: this.getCustomers(),
+        settings: this.getSettings(),
+        lastUpdated: new Date().toISOString(),
+        lastChange: change
+      };
+
+      await fetch(settings.cloudSyncUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(settings.cloudSyncApiKey ? { 'Authorization': `Bearer ${settings.cloudSyncApiKey}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.warn('Cloud sync push failed:', err);
+    }
+  },
+
+  async fetchFromCloud() {
+    const settings = this.getSettings();
+    if (!settings.cloudSyncEnabled || !settings.cloudSyncUrl) return false;
+
+    try {
+      const res = await fetch(settings.cloudSyncUrl, {
+        headers: {
+          ...(settings.cloudSyncApiKey ? { 'Authorization': `Bearer ${settings.cloudSyncApiKey}` } : {})
+        }
+      });
+      if (res.ok) {
+        const cloudData = await res.json();
+        if (cloudData && cloudData.customers) {
+          localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(cloudData.customers));
+          this.notifyListeners({ type: 'cloud_pulled', timestamp: Date.now() });
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('Cloud sync fetch failed:', err);
+    }
+    return false;
+  },
+
+  checkCloudSync() {
+    const settings = this.getSettings();
+    if (settings.cloudSyncEnabled && settings.cloudSyncUrl) {
+      this.fetchFromCloud();
+      if (!this._syncPollingTimer) {
+        this._syncPollingTimer = setInterval(() => {
+          this.fetchFromCloud();
+        }, 10000);
+      }
     }
   },
 
@@ -50,6 +185,7 @@ const FinanceDB = {
     const admin = this.getAdmin();
     const updated = { ...admin, ...data };
     localStorage.setItem(this.KEYS.ADMIN, JSON.stringify(updated));
+    this.notifyChange('updateAdmin', updated);
     return updated;
   },
 
@@ -62,6 +198,7 @@ const FinanceDB = {
     const settings = this.getSettings();
     const updated = { ...settings, ...data };
     localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(updated));
+    this.notifyChange('updateSettings', updated);
     return updated;
   },
 
@@ -88,6 +225,7 @@ const FinanceDB = {
     };
     customers.push(customer);
     localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(customers));
+    this.notifyChange('addCustomer', customer);
     return customer;
   },
 
@@ -99,12 +237,14 @@ const FinanceDB = {
     if (data.email) data.email = data.email.toLowerCase();
     customers[index] = { ...customers[index], ...data };
     localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(customers));
+    this.notifyChange('updateCustomer', customers[index]);
     return customers[index];
   },
 
   deleteCustomer(id) {
     const customers = this.getCustomers().filter(c => c.id !== id);
     localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(customers));
+    this.notifyChange('deleteCustomer', id);
   },
 
   /* ─── Contracts ─── */
@@ -123,11 +263,14 @@ const FinanceDB = {
       id: 'con_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       createdAt: new Date().toISOString(),
       ...contractData,
+      paymentFrequency: contractData.paymentFrequency || 'monthly',
+      dueDay: contractData.dueDay ? parseInt(contractData.dueDay) : null,
       installments: this.generateInstallments(contractData)
     };
 
     customer.contracts.push(contract);
     this.updateCustomer(customerId, { contracts: customer.contracts });
+    this.notifyChange('addContract', { customerId, contract });
     return contract;
   },
 
@@ -140,6 +283,7 @@ const FinanceDB = {
 
     customer.contracts[index] = { ...customer.contracts[index], ...data };
     this.updateCustomer(customerId, { contracts: customer.contracts });
+    this.notifyChange('updateContract', { customerId, contractId, data });
     return customer.contracts[index];
   },
 
@@ -149,18 +293,42 @@ const FinanceDB = {
 
     customer.contracts = customer.contracts.filter(c => c.id !== contractId);
     this.updateCustomer(customerId, { contracts: customer.contracts });
+    this.notifyChange('deleteContract', { customerId, contractId });
   },
 
-  /* ─── Installments ─── */
+  /* ─── Installments Generation (รองรับ รายวัน, ราย 5 วัน, รายเดือน) ─── */
   generateInstallments(contractData) {
-    const { totalInstallments, installmentAmount, startDate, paidCount } = contractData;
+    const { 
+      totalInstallments, 
+      installmentAmount, 
+      startDate, 
+      paidCount,
+      paymentFrequency = 'monthly', // 'daily' | 'every_5_days' | 'monthly'
+      dueDay
+    } = contractData;
+
     const installments = [];
     const start = new Date(startDate);
     const pCount = parseInt(paidCount) || 0;
+    const count = parseInt(totalInstallments) || 1;
 
-    for (let i = 0; i < totalInstallments; i++) {
-      const dueDate = new Date(start);
-      dueDate.setMonth(dueDate.getMonth() + i + 1);
+    for (let i = 0; i < count; i++) {
+      let dueDate = new Date(start);
+
+      if (paymentFrequency === 'daily') {
+        // 4.1 รายวัน: จ่ายทุกวัน (+1 วันต่องวด)
+        dueDate.setDate(dueDate.getDate() + i + 1);
+      } else if (paymentFrequency === 'every_5_days') {
+        // 4.2 ราย 5 วัน: จ่ายทุกๆ 5 วัน (+5 วันต่องวด)
+        dueDate.setDate(dueDate.getDate() + ((i + 1) * 5));
+      } else {
+        // 4.3 & 4.5 รายเดือน: จ่าย 1 ครั้ง/เดือน และกำหนดวันจ่ายในเดือนได้
+        dueDate.setMonth(start.getMonth() + i + 1);
+        if (dueDay && parseInt(dueDay) >= 1 && parseInt(dueDay) <= 31) {
+          const maxDays = new Date(dueDate.getFullYear(), dueDate.getMonth() + 1, 0).getDate();
+          dueDate.setDate(Math.min(parseInt(dueDay), maxDays));
+        }
+      }
 
       const isPaid = i < pCount;
       installments.push({
@@ -189,6 +357,7 @@ const FinanceDB = {
     installment.paidDate = new Date().toISOString().split('T')[0];
 
     this.updateCustomer(customerId, { contracts: customer.contracts });
+    this.notifyChange('payInstallment', { customerId, contractId, installmentNumber });
     return true;
   },
 
@@ -210,6 +379,7 @@ const FinanceDB = {
     }
 
     this.updateCustomer(customerId, { contracts: customer.contracts });
+    this.notifyChange('setInstallmentStatus', { customerId, contractId, installmentNumber, status });
     return true;
   },
 
@@ -282,7 +452,8 @@ const FinanceDB = {
             nextPayment = {
               ...stats.nextInstallment,
               contractId: c.id,
-              contractName: c.name
+              contractName: c.name,
+              frequency: c.paymentFrequency || 'monthly'
             };
           }
         }
@@ -340,7 +511,7 @@ const FinanceDB = {
 
   /* ─── Seed Demo Data ─── */
   seedDemoData() {
-    // Demo Customer 1
+    // Demo Customer 1 (รายเดือน)
     const cust1 = this.addCustomer({
       name: 'สมชาย ใจดี',
       email: 'somchai@test.com',
@@ -351,44 +522,38 @@ const FinanceDB = {
     });
 
     if (cust1) {
-      // Contract 1: ผ่อนทอง
+      // Contract 1: ผ่อนทอง 2 บาท (รายเดือน จ่ายทุกวันที่ 1)
       const contract1Data = {
         name: 'ผ่อนทอง 2 บาท',
         totalAmount: 60000,
         installmentAmount: 5000,
         totalInstallments: 12,
         durationMonths: 12,
-        startDate: '2026-03-01'
+        startDate: '2026-03-01',
+        paymentFrequency: 'monthly',
+        dueDay: 1,
+        paidCount: 4
       };
 
-      const contract1 = this.addContract(cust1.id, contract1Data);
+      this.addContract(cust1.id, contract1Data);
 
-      // Mark first 4 installments as paid
-      if (contract1) {
-        for (let i = 1; i <= 4; i++) {
-          this.payInstallment(cust1.id, contract1.id, i);
-        }
-      }
-
-      // Contract 2: กู้เงิน
+      // Contract 2: สินเชื่อส่วนบุคคล (รายเดือน จ่ายทุกวันที่ 15)
       const contract2Data = {
         name: 'สินเชื่อส่วนบุคคล',
         totalAmount: 120000,
         installmentAmount: 5000,
         totalInstallments: 24,
         durationMonths: 24,
-        startDate: '2026-01-15'
+        startDate: '2026-01-15',
+        paymentFrequency: 'monthly',
+        dueDay: 15,
+        paidCount: 6
       };
 
-      const contract2 = this.addContract(cust1.id, contract2Data);
-      if (contract2) {
-        for (let i = 1; i <= 6; i++) {
-          this.payInstallment(cust1.id, contract2.id, i);
-        }
-      }
+      this.addContract(cust1.id, contract2Data);
     }
 
-    // Demo Customer 2
+    // Demo Customer 2 (ราย 5 วัน)
     const cust2 = this.addCustomer({
       name: 'สมหญิง รักดี',
       email: 'somying@test.com',
@@ -405,15 +570,39 @@ const FinanceDB = {
         installmentAmount: 3750,
         totalInstallments: 12,
         durationMonths: 12,
-        startDate: '2026-06-01'
+        startDate: '2026-06-01',
+        paymentFrequency: 'every_5_days',
+        dueDay: null,
+        paidCount: 2
       };
 
-      const contract = this.addContract(cust2.id, contractData);
-      if (contract) {
-        for (let i = 1; i <= 2; i++) {
-          this.payInstallment(cust2.id, contract.id, i);
-        }
-      }
+      this.addContract(cust2.id, contractData);
+    }
+
+    // Demo Customer 3 (รายวัน)
+    const cust3 = this.addCustomer({
+      name: 'ประสิทธิ์ ขยันยิ่ง',
+      email: 'prasit@test.com',
+      password: '1234',
+      profileImage: '',
+      phone: '082-999-8877',
+      closedContractsCount: 0
+    });
+
+    if (cust3) {
+      const contractData = {
+        name: 'เงินด่วนรายวันเพื่อการค้า',
+        totalAmount: 10000,
+        installmentAmount: 500,
+        totalInstallments: 20,
+        durationMonths: 1,
+        startDate: new Date().toISOString().split('T')[0],
+        paymentFrequency: 'daily',
+        dueDay: null,
+        paidCount: 4
+      };
+
+      this.addContract(cust3.id, contractData);
     }
   },
 
@@ -436,6 +625,16 @@ const FinanceDB = {
       return `${years} ปี`;
     } else {
       return `${months} เดือน`;
+    }
+  },
+
+  formatFrequency(frequency, dueDay) {
+    if (frequency === 'daily') {
+      return '☀️ ผ่อนรายวัน (จ่ายทุกวัน)';
+    } else if (frequency === 'every_5_days') {
+      return '🗓️ ผ่อนราย 5 วัน (จ่ายทุกๆ 5 วัน)';
+    } else {
+      return '📅 ผ่อนรายเดือน' + (dueDay ? ` (ทุกวันที่ ${dueDay})` : ' (เดือนละครั้ง)');
     }
   },
 

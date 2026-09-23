@@ -15,30 +15,11 @@
     <div class="login-logo">
       <div class="logo-icon">💰</div>
       <h1>Finance Pro</h1>
-      <p>ระบบจัดการไฟแนนซ์ออนไลน์ (Mobile & Admin)</p>
+      <p>ระบบจัดการไฟแนนซ์ออนไลน์</p>
     </div>
 
     <!-- Login Card -->
     <div class="glass-card login-card" id="loginCard">
-      <!-- Demo Accounts Helper -->
-      <div class="demo-accounts">
-        <div class="demo-title">⚡ บัญชีทดสอบด่วน (คลิกเพื่อกรอกอัตโนมัติ):</div>
-        <div class="demo-chips">
-          <button type="button" class="demo-chip admin" onclick="fillLogin('admin@finance.com', 'admin123')">
-            <span>👨‍💼 ผู้ดูแลระบบ (แอดมิน)</span>
-            <span class="chip-role">Admin</span>
-          </button>
-          <button type="button" class="demo-chip customer" onclick="fillLogin('somchai@test.com', '1234')">
-            <span>👤 สมชาย ใจดี (ผ่อนทอง + กู้เงิน)</span>
-            <span class="chip-role">ลูกค้า 1</span>
-          </button>
-          <button type="button" class="demo-chip customer" onclick="fillLogin('somying@test.com', '1234')">
-            <span>👤 สมหญิง รักดี (ผ่อน iPhone)</span>
-            <span class="chip-role">ลูกค้า 2</span>
-          </button>
-        </div>
-      </div>
-
       <!-- Error Message -->
       <div class="login-error" id="loginError">
         <span>⚠️</span>
@@ -93,8 +74,8 @@
         <span>หรือเข้าสู่ระบบด้วย</span>
       </div>
 
-      <!-- LINE Login -->
-      <button type="button" class="btn btn-line" id="lineLoginBtn" onclick="openLineModal()">
+      <!-- LINE Login: เปิดไปยังแอปพลิเคชัน LINE -->
+      <button type="button" class="btn btn-line" id="lineLoginBtn" onclick="handleLineLogin()">
         <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
           <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
         </svg>
@@ -115,21 +96,17 @@
     </div>
   </div>
 
-  <!-- LINE Login Modal -->
-  <div class="modal-overlay" id="lineModal">
+  <!-- LINE Config Modal (เมื่อยังไม่ได้ผูก Channel ID หรือต้องการทดสอบ) -->
+  <div class="modal-overlay" id="lineInfoModal">
     <div class="modal-content line-modal-content">
       <div class="modal-header">
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:1.5rem;">🟢</span>
-          <h3 class="modal-title" style="color:#06C755;">เข้าสู่ระบบผ่าน LINE</h3>
+          <h3 class="modal-title" style="color:#06C755;">เชื่อมต่อแอป LINE</h3>
         </div>
-        <button class="modal-close" onclick="closeLineModal()">✕</button>
+        <button class="modal-close" onclick="closeLineInfoModal()">✕</button>
       </div>
-      <div class="modal-body">
-        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
-          เลือกลูกค้าที่ต้องการจำลองการเข้าสู่ระบบผ่าน LINE:
-        </p>
-        <div id="lineCustomersList"></div>
+      <div class="modal-body" id="lineInfoBody">
       </div>
     </div>
   </div>
@@ -138,8 +115,10 @@
   <script src="js/data.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    // If already logged in, redirect
-    if (Auth.isLoggedIn()) {
+    // Check LINE callback
+    if (Auth.handleLineCallback()) {
+      // Handled
+    } else if (Auth.isLoggedIn()) {
       if (Auth.isAdmin()) {
         window.location.href = 'admin.html';
       } else {
@@ -147,59 +126,65 @@
       }
     }
 
-    // Quick fill login fields
-    function fillLogin(email, password) {
-      document.getElementById('loginEmail').value = email;
-      document.getElementById('loginPassword').value = password;
-      showToast('กรอกข้อมูล: ' + email, 'info');
-    }
-
-    // LINE Login Modal
-    function openLineModal() {
-      const modal = document.getElementById('lineModal');
-      const listEl = document.getElementById('lineCustomersList');
-      const customers = FinanceDB.getCustomers();
-
-      if (customers.length === 0) {
-        listEl.innerHTML = '<p style="text-align:center;color:var(--text-muted);">ยังไม่มีลูกค้าในระบบ</p>';
+    // LINE Login Handler: เปิดไปยังแอป LINE จริง
+    function handleLineLogin() {
+      const settings = FinanceDB.getSettings();
+      if (settings.lineChannelId && settings.lineChannelId.trim() !== '') {
+        // มี Channel ID: Redirect ไป LINE OAuth 2.1 (เปิดเข้าแอป LINE ทันทีบนมือถือ)
+        Auth.redirectToLineApp();
       } else {
-        let html = '';
-        customers.forEach(c => {
-          const avatar = c.profileImage || getDefaultAvatar(c.name);
-          html += `
-            <div class="line-user-item" onclick="loginWithLineCustomer('${c.id}')">
-              <img src="${avatar}" alt="${c.name}" class="line-user-avatar">
-              <div class="line-user-info">
-                <h4>${c.name}</h4>
-                <p>${c.email}</p>
-              </div>
-              <span class="btn btn-line btn-xs">เข้าสู่ระบบ</span>
+        // แสดง Modal แนะนำการตั้งค่า และมีตัวเลือกจำลองเข้าแอป LINE
+        const modal = document.getElementById('lineInfoModal');
+        const body = document.getElementById('lineInfoBody');
+        body.innerHTML = `
+          <div style="text-align:center;margin-bottom:16px;">
+            <div style="width:56px;height:56px;background:rgba(6,199,85,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:1.8rem;">
+              📱
             </div>
-          `;
-        });
-        listEl.innerHTML = html;
+            <h4 style="font-size:1.05rem;margin-bottom:6px;">เข้าสู่ระบบผ่านแอปพลิเคชัน LINE</h4>
+            <p style="font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">
+              ระบบรองรับการกดแล้วเปิดแอป LINE บนมือถือทันที ผ่าน LINE Login OAuth 2.1
+            </p>
+          </div>
+
+          <div style="background:var(--glass);padding:14px;border-radius:var(--radius);margin-bottom:16px;font-size:0.8rem;">
+            <strong style="color:var(--accent-light);">💡 สำหรับเจ้าหน้าที่แอดมิน:</strong>
+            <p style="color:var(--text-muted);margin-top:4px;">
+              สามารถเข้าไปใส่ <strong>LINE Channel ID</strong> ของบริษัทได้ที่เมนู <em>"⚙️ ข้อมูลติดต่อ/พร้อมเพย์"</em> ในหน้าแอดมิน เพื่อเปิดใช้งานการ Login ผ่านแอป LINE จริง
+            </p>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-line" onclick="testSimulateLineApp()">
+              📲 ทดสอบเปิดเข้าใช้งานด้วย LINE บัญชีตัวอย่าง
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='admin.html'">
+              ⚙️ ไปหน้าแอดมินเพื่อตั้งค่า LINE Channel ID
+            </button>
+          </div>
+        `;
+        modal.classList.add('active');
       }
-
-      modal.classList.add('active');
     }
 
-    function closeLineModal() {
-      document.getElementById('lineModal').classList.remove('active');
+    function closeLineInfoModal() {
+      document.getElementById('lineInfoModal').classList.remove('active');
     }
 
-    function loginWithLineCustomer(customerId) {
-      const result = Auth.loginWithLine(customerId);
-      if (result.success) {
+    function testSimulateLineApp() {
+      const customers = FinanceDB.getCustomers();
+      if (customers.length > 0) {
+        Auth.loginWithLine(customers[0].id);
         showToast('เข้าสู่ระบบผ่าน LINE สำเร็จ!', 'success');
         setTimeout(() => window.location.href = 'dashboard.html', 500);
       } else {
-        showToast(result.message, 'error');
+        showToast('ยังไม่มีข้อมูลลูกค้าในระบบ', 'error');
       }
     }
 
     // Close LINE modal on overlay click
-    document.getElementById('lineModal').addEventListener('click', (e) => {
-      if (e.target.id === 'lineModal') closeLineModal();
+    document.getElementById('lineInfoModal').addEventListener('click', (e) => {
+      if (e.target.id === 'lineInfoModal') closeLineInfoModal();
     });
 
     // Form submit

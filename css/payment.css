@@ -42,7 +42,7 @@
 /* Payment info card */
 .payment-info-card {
   padding: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-align: center;
 }
 
@@ -60,7 +60,7 @@
 }
 
 .payment-amount-display {
-  margin: 20px 0;
+  margin: 16px 0;
 }
 
 .payment-amount-display .label {
@@ -71,7 +71,7 @@
 
 .payment-amount-display .amount {
   font-family: 'Inter', sans-serif;
-  font-size: 2.5rem;
+  font-size: 2.4rem;
   font-weight: 800;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
   -webkit-background-clip: text;
@@ -94,14 +94,14 @@
 /* QR Code Section */
 .qr-section {
   padding: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-align: center;
 }
 
 .qr-section h3 {
   font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,10 +111,10 @@
 .qr-wrapper {
   background: white;
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 16px;
   display: inline-block;
-  margin: 0 auto 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  margin: 0 auto 14px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .qr-code {
@@ -123,26 +123,126 @@
   display: block;
 }
 
+.shop-qr-img {
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+  display: block;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.shop-qr-img:hover {
+  transform: scale(1.02);
+}
+
+.qr-action-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
 .qr-promptpay-info {
   margin-top: 12px;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
 .qr-promptpay-info strong {
+  color: var(--text-primary);
+}
+
+/* ─── Slip Auto-Verification Box ─── */
+.slip-upload-box {
+  padding: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 1px solid rgba(6, 199, 85, 0.3);
+  background: linear-gradient(135deg, rgba(6, 199, 85, 0.05) 0%, rgba(10, 22, 40, 0.8) 100%);
+}
+
+.slip-upload-box h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--success);
+  margin-bottom: 4px;
+}
+
+.slip-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.slip-dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius);
+  padding: 20px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--glass);
+  margin-bottom: 12px;
+}
+
+.slip-dropzone:hover {
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.slip-dropzone p {
+  font-size: 0.82rem;
   color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.slip-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.slip-preview-img {
+  max-width: 140px;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--success);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  margin-bottom: 8px;
+}
+
+.slip-verification-result {
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.slip-verification-result.success {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
+.slip-verification-result.error {
+  background: var(--error-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--error);
 }
 
 /* Confirm section */
 .confirm-section {
-  margin-top: 24px;
+  margin-top: 20px;
 }
 
 .confirm-note {
   font-size: 0.8rem;
   color: var(--text-muted);
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   line-height: 1.6;
 }
 
@@ -168,24 +268,25 @@
 .payment-success-content {
   text-align: center;
   animation: scaleIn 0.5s ease-out;
+  padding: 24px;
 }
 
 .payment-success-icon {
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 24px;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 20px;
   background: var(--success);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: 2.8rem;
   box-shadow: 0 0 60px rgba(34, 197, 94, 0.4);
   animation: pulse 2s infinite;
 }
 
 .payment-success-content h2 {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   margin-bottom: 8px;
 }

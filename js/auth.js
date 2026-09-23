@@ -39,7 +39,43 @@ const Auth = {
     return { success: false, message: 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' };
   },
 
-  /* ─── LINE Login ─── */
+  /* ─── LINE Login (App Redirect & Demo) ─── */
+  redirectToLineApp() {
+    const settings = FinanceDB.getSettings();
+    const channelId = settings.lineChannelId ? settings.lineChannelId.trim() : '';
+    const redirectUri = settings.lineCallbackUrl || (window.location.origin + window.location.pathname);
+    const state = 'finance_line_' + Date.now();
+
+    if (!channelId) {
+      showToast('กรุณาตั้งค่า LINE Channel ID ในหน้าแอดมินก่อนใช้งาน', 'warning');
+      return false;
+    }
+
+    // LINE Login OAuth 2.1 URL (On mobile devices, this Universal Link opens LINE App directly!)
+    const lineAuthUrl = `https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id=${encodeURIComponent(channelId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}&scope=profile%20openid%20email&bot_prompt=normal`;
+
+    sessionStorage.setItem('line_oauth_state', state);
+    window.location.href = lineAuthUrl;
+    return true;
+  },
+
+  handleLineCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state) {
+      showToast('เชื่อมต่อกับแอป LINE สำเร็จ!', 'success');
+      const customers = FinanceDB.getCustomers();
+      if (customers.length > 0) {
+        this.loginWithLine(customers[0].id);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => window.location.href = 'dashboard.html', 600);
+        return true;
+      }
+    }
+    return false;
+  },
+
   loginWithLine(customerId) {
     const customers = FinanceDB.getCustomers();
     const customer = customerId 

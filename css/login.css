@@ -188,62 +188,6 @@
   animation: spin 0.8s linear infinite;
 }
 
-/* ─── Demo Accounts Bar ─── */
-.demo-accounts {
-  margin-bottom: 20px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-}
-
-.demo-title {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-.demo-chips {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.demo-chip {
-  padding: 8px 12px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: all var(--transition-fast);
-  text-align: left;
-}
-
-.demo-chip:hover {
-  background: var(--glass-hover);
-  border-color: var(--accent);
-  transform: translateX(2px);
-}
-
-.demo-chip.admin {
-  border-color: rgba(212, 168, 71, 0.3);
-  color: var(--accent-light);
-}
-
-.demo-chip .chip-role {
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.08);
-}
-
 /* ─── Admin Link Box ─── */
 .admin-link-box {
   margin-top: 20px;

@@ -196,8 +196,13 @@ function renderContractDetail(contract, stats) {
   return `
     <div class="contract-card glass-card-static animate-fade-in-up stagger-4">
       <div class="contract-header">
-        <div class="contract-name">
-          📄 ${contract.name}
+        <div>
+          <div class="contract-name">
+            📄 ${contract.name}
+          </div>
+          <div style="font-size:0.75rem;color:var(--accent-light);margin-top:3px;display:flex;align-items:center;gap:4px;">
+            ${FinanceDB.formatFrequency(contract.paymentFrequency, contract.dueDay)}
+          </div>
         </div>
         ${stats.isCompleted 
           ? '<span class="badge badge-success">✅ ปิดสัญญาแล้ว</span>'

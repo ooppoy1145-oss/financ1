@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Finance Pro — ชำระเงิน</title>
-  <meta name="description" content="ชำระเงินค่างวดออนไลน์ผ่าน QR Code พร้อมเพย์">
+  <meta name="description" content="ชำระเงินค่างวดออนไลน์ผ่าน QR Code พร้อมเพย์ และระบบตรวจสอบสลิปอัตโนมัติ">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/payment.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
@@ -15,16 +15,19 @@
       <!-- Header -->
       <div class="payment-header">
         <a href="dashboard.html" class="back-btn">←</a>
-        <h1>ชำระเงิน</h1>
+        <h1>ชำระเงินค่างวด</h1>
       </div>
 
       <!-- Payment Info -->
       <div id="paymentInfo"></div>
 
-      <!-- QR Code -->
+      <!-- QR Code (รูป QR ของร้าน หรือ QR พร้อมเพย์) -->
       <div id="qrSection"></div>
 
-      <!-- Confirm -->
+      <!-- Bank Slip Auto-Verification (เช็คอัตโนมัติว่าลูกค้าโอนจริง) -->
+      <div id="slipSection"></div>
+
+      <!-- Confirm Section -->
       <div id="confirmSection"></div>
     </div>
   </div>
@@ -34,12 +37,22 @@
     <div class="payment-success-content">
       <div class="payment-success-icon">✅</div>
       <h2>ชำระเงินสำเร็จ!</h2>
-      <p>กำลังกลับไปหน้าหลัก...</p>
+      <p id="successMessage">กำลังกลับไปหน้าหลัก...</p>
+    </div>
+  </div>
+
+  <!-- QR Image Zoom Modal -->
+  <div class="modal-overlay" id="qrZoomModal" onclick="this.classList.remove('active')">
+    <div class="modal-content" style="max-width:380px;text-align:center;padding:16px;">
+      <h4 style="margin-bottom:12px;color:var(--accent-light);">QR Code สำหรับชำระเงิน</h4>
+      <img id="qrZoomImg" src="" style="width:100%;border-radius:var(--radius);border:2px solid var(--accent);" alt="QR Code">
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%;" onclick="document.getElementById('qrZoomModal').classList.remove('active')">ปิดหน้าต่าง</button>
     </div>
   </div>
 
   <script src="js/data.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/bank-api.js"></script>
   <script src="js/payment.js"></script>
 </body>
 </html>
