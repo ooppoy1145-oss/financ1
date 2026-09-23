@@ -20,6 +20,15 @@ function initDashboard() {
   renderSummary(customer);
   renderContracts(customer);
   renderContact();
+
+  // Listen for real-time cloud updates from admin
+  FinanceDB.onSync(() => {
+    const updatedCustomer = FinanceDB.getCustomer(session.id);
+    if (updatedCustomer) {
+      renderSummary(updatedCustomer);
+      renderContracts(updatedCustomer);
+    }
+  });
 }
 
 /* ─── Header ─── */

@@ -10,7 +10,86 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
 </head>
 <body>
-  <div class="admin-page">
+  <!-- Admin Login Gateway (Shown when NOT logged in as admin) -->
+  <div id="adminLoginGateway" class="admin-login-wrapper" style="display: none;">
+    <div class="glass-card admin-login-card">
+      <div class="admin-login-header">
+        <div class="admin-login-logo">
+          <div class="logo-icon">🔐</div>
+        </div>
+        <div class="admin-badge-chip">ADMINISTRATION PORTAL</div>
+        <h2>Finance Pro แอดมิน</h2>
+        <p>ระบบจัดการหลังบ้านไฟแนนซ์ — สำหรับเจ้าหน้าที่</p>
+      </div>
+
+      <!-- Cloud Sync Status Pill -->
+      <div class="admin-cloud-indicator">
+        <span class="sync-dot"></span>
+        <span id="gatewayCloudStatus">ระบบคลาวด์ซิงค์เชื่อมต่อพร้อมใช้งาน — ข้อมูลตรงกันทุกเครื่อง</span>
+      </div>
+
+      <!-- Form -->
+      <form id="adminGatewayForm" autocomplete="off">
+        <div class="login-error" id="adminLoginError" style="display:none;margin-bottom:16px;">
+          <span>⚠️</span>
+          <span id="adminLoginErrorText">อีเมลหรือรหัสผ่านแอดมินไม่ถูกต้อง</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="adminEmailInput">อีเมลแอดมิน (Admin Email)</label>
+          <div class="form-input-icon">
+            <span class="icon">👤</span>
+            <input 
+              type="email" 
+              class="form-input" 
+              id="adminEmailInput" 
+              value="admin@finance.com" 
+              placeholder="admin@finance.com" 
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="adminPasswordInput">รหัสผ่านแอดมิน (Password)</label>
+          <div class="form-input-icon">
+            <span class="icon">🔒</span>
+            <input 
+              type="password" 
+              class="form-input" 
+              id="adminPasswordInput" 
+              value="admin123"
+              placeholder="กรอกรหัสผ่านแอดมิน" 
+              required
+            >
+            <button type="button" class="password-toggle" id="toggleAdminGatewayPass" aria-label="แสดงรหัสผ่าน">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block admin-submit-btn" id="adminGatewaySubmitBtn">
+          <span>เข้าสู่ระบบหลังบ้านแอดมิน</span>
+        </button>
+
+        <!-- Quick Demo Fill -->
+        <div class="admin-quick-helper">
+          <button type="button" class="btn-quick-fill" onclick="quickFillAdmin()">
+            ⚡ เข้าใช้งานทันทีด้วยบัญชีแอดมินทดสอบ (admin@finance.com)
+          </button>
+        </div>
+      </form>
+
+      <div class="admin-gateway-footer">
+        <a href="index.html" class="back-to-client-link">
+          🌐 ไปยังหน้าบ้านลูกค้า (Customer Portal) →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Main Workspace (Shown when authenticated) -->
+  <div id="adminWorkspace" class="admin-page" style="display: none;">
     <!-- Header -->
     <header class="admin-header" id="adminHeader"></header>
 

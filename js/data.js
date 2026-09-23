@@ -12,9 +12,13 @@ const FinanceDB = {
   },
 
   /* ─── Real-Time Sync & Multi-Device State ─── */
+  DEFAULT_CLOUD_URL: 'https://extendsclass.com/api/json-storage/bin/abafcdb',
   _syncListeners: [],
   _broadcastChannel: null,
   _syncPollingTimer: null,
+  _lastCloudSyncTime: null,
+  _lastCloudSyncStatus: 'connected', // 'connected' | 'syncing' | 'offline'
+  _lastKnownCloudHash: '',
 
   /* ─── Initialize ─── */
   init() {
@@ -27,26 +31,38 @@ const FinanceDB = {
       }));
     }
 
-    // Default settings
-    if (!localStorage.getItem(this.KEYS.SETTINGS)) {
-      localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify({
-        companyName: 'Finance Pro',
-        contactPhone: '02-123-4567',
-        contactLine: '@financepro',
-        contactEmail: 'contact@financepro.com',
-        promptpayId: '0812345678',
-        promptpayName: 'บริษัท ไฟแนนซ์โปร จำกัด',
-        shopQrImage: '', // Custom Shop QR (Base64)
-        lineChannelId: '', // LINE Login Channel ID
-        lineCallbackUrl: '',
-        bankApiProvider: 'slipok', // 'slipok' | 'easyslip' | 'direct' | 'mock'
-        bankApiKey: '',
-        bankApiSecret: '',
-        cloudSyncEnabled: false,
-        cloudSyncUrl: '',
-        cloudSyncApiKey: ''
-      }));
+    // Default settings with Cloud Sync activated by default
+    const savedSettings = localStorage.getItem(this.KEYS.SETTINGS);
+    let settingsObj = {
+      companyName: 'Finance Pro',
+      contactPhone: '02-123-4567',
+      contactLine: '@financepro',
+      contactEmail: 'contact@financepro.com',
+      promptpayId: '0812345678',
+      promptpayName: 'บริษัท ไฟแนนซ์โปร จำกัด',
+      shopQrImage: '', // Custom Shop QR (Base64)
+      lineChannelId: '', // LINE Login Channel ID
+      lineCallbackUrl: '',
+      bankApiProvider: 'slipok', // 'slipok' | 'easyslip' | 'direct' | 'mock'
+      bankApiKey: '',
+      bankApiSecret: '',
+      cloudSyncEnabled: true,
+      cloudSyncUrl: this.DEFAULT_CLOUD_URL,
+      cloudSyncApiKey: ''
+    };
+
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        settingsObj = { ...settingsObj, ...parsed };
+        // Ensure cloud sync is enabled by default so all machines see the same data
+        if (!settingsObj.cloudSyncUrl || settingsObj.cloudSyncUrl.trim() === '') {
+          settingsObj.cloudSyncUrl = this.DEFAULT_CLOUD_URL;
+        }
+        settingsObj.cloudSyncEnabled = true;
+      } catch (e) {}
     }
+    localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(settingsObj));
 
     // Initialize customers array
     if (!localStorage.getItem(this.KEYS.CUSTOMERS)) {
@@ -60,7 +76,7 @@ const FinanceDB = {
 
   /* ─── Real-Time Sync & Multi-Device Engine ─── */
   initSync() {
-    // 1. BroadcastChannel for cross-tab & cross-window real-time sync
+    // 1. BroadcastChannel for cross-tab & cross-window real-time sync on same machine
     if (typeof BroadcastChannel !== 'undefined') {
       try {
         this._broadcastChannel = new BroadcastChannel('finance_pro_sync');
@@ -79,7 +95,17 @@ const FinanceDB = {
       }
     });
 
-    // 3. Cloud sync polling if configured
+    // 3. Immediate sync on window focus / tab active (when employee returns to page)
+    window.addEventListener('focus', () => {
+      this.fetchFromCloud();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.fetchFromCloud();
+      }
+    });
+
+    // 4. Cloud sync polling across all devices
     this.checkCloudSync();
   },
 
@@ -107,7 +133,7 @@ const FinanceDB = {
 
     this.notifyListeners(payload);
 
-    // Push to cloud if enabled
+    // Push to cloud immediately for other machines
     this.pushToCloud(payload);
   },
 
@@ -115,9 +141,9 @@ const FinanceDB = {
     this.notifyListeners(message);
   },
 
-  /* ─── Cloud Sync (Firebase Realtime DB / REST API) ─── */
+  /* ─── Cloud Sync (Firebase Realtime DB / Shared Cloud REST API) ─── */
   formatCloudUrl(url) {
-    if (!url) return '';
+    if (!url) return this.DEFAULT_CLOUD_URL;
     let trimmed = url.trim();
     // Auto format Firebase Realtime DB URL
     if (trimmed.includes('firebaseio.com') && !trimmed.endsWith('.json')) {
@@ -128,78 +154,123 @@ const FinanceDB = {
 
   async pushToCloud(change) {
     const settings = this.getSettings();
-    if (!settings.cloudSyncEnabled || !settings.cloudSyncUrl) return;
+    const cloudUrl = settings.cloudSyncUrl || this.DEFAULT_CLOUD_URL;
+    if (!settings.cloudSyncEnabled && !cloudUrl) return;
 
-    const url = this.formatCloudUrl(settings.cloudSyncUrl);
+    const url = this.formatCloudUrl(cloudUrl);
+    this._lastCloudSyncStatus = 'syncing';
 
     try {
       const payload = {
+        app: 'FinancePro',
         customers: this.getCustomers(),
         settings: this.getSettings(),
         lastUpdated: new Date().toISOString(),
-        lastChange: change
+        lastChange: change || { action: 'update', timestamp: Date.now() }
       };
 
-      await fetch(url, {
+      const res = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           ...(settings.cloudSyncApiKey ? { 'Authorization': `Bearer ${settings.cloudSyncApiKey}` } : {})
         },
         body: JSON.stringify(payload)
       });
+
+      if (res.ok) {
+        this._lastCloudSyncTime = Date.now();
+        this._lastCloudSyncStatus = 'connected';
+        this._lastKnownCloudHash = JSON.stringify(payload.customers);
+      } else {
+        this._lastCloudSyncStatus = 'offline';
+      }
     } catch (err) {
       console.warn('Cloud sync push failed:', err);
+      this._lastCloudSyncStatus = 'offline';
     }
   },
 
-  async fetchFromCloud() {
+  async fetchFromCloud(isInitial = false) {
     const settings = this.getSettings();
-    if (!settings.cloudSyncEnabled || !settings.cloudSyncUrl) return false;
+    const cloudUrl = settings.cloudSyncUrl || this.DEFAULT_CLOUD_URL;
+    if (!settings.cloudSyncEnabled && !cloudUrl) return false;
 
-    const url = this.formatCloudUrl(settings.cloudSyncUrl);
+    const url = this.formatCloudUrl(cloudUrl);
 
     try {
       const res = await fetch(url, {
         headers: {
+          'Cache-Control': 'no-cache',
           ...(settings.cloudSyncApiKey ? { 'Authorization': `Bearer ${settings.cloudSyncApiKey}` } : {})
         }
       });
+
       if (res.ok) {
         const cloudData = await res.json();
-        if (cloudData && cloudData.customers) {
-          localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(cloudData.customers));
-          if (cloudData.settings) {
-            // Keep local cloud connection active
-            const mergedSettings = {
-              ...cloudData.settings,
-              cloudSyncEnabled: settings.cloudSyncEnabled,
-              cloudSyncUrl: settings.cloudSyncUrl,
-              cloudSyncApiKey: settings.cloudSyncApiKey
-            };
-            localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(mergedSettings));
+        this._lastCloudSyncTime = Date.now();
+        this._lastCloudSyncStatus = 'connected';
+
+        if (cloudData && Array.isArray(cloudData.customers)) {
+          const currentCustomersStr = localStorage.getItem(this.KEYS.CUSTOMERS) || '[]';
+          const cloudCustomersStr = JSON.stringify(cloudData.customers);
+
+          // If cloud has data and it's different from local storage
+          if (cloudCustomersStr !== currentCustomersStr && cloudData.customers.length > 0) {
+            localStorage.setItem(this.KEYS.CUSTOMERS, cloudCustomersStr);
+            this._lastKnownCloudHash = cloudCustomersStr;
+
+            if (cloudData.settings && typeof cloudData.settings === 'object') {
+              const mergedSettings = {
+                ...cloudData.settings,
+                cloudSyncEnabled: true,
+                cloudSyncUrl: settings.cloudSyncUrl || this.DEFAULT_CLOUD_URL,
+                cloudSyncApiKey: settings.cloudSyncApiKey || ''
+              };
+              localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(mergedSettings));
+            }
+
+            this.notifyListeners({ 
+              type: 'cloud_pulled', 
+              isInitial, 
+              change: cloudData.lastChange, 
+              timestamp: Date.now() 
+            });
+            return true;
+          } else if (cloudData.customers.length === 0 && JSON.parse(currentCustomersStr).length > 0) {
+            // Cloud is empty but local has seed data: seed the cloud!
+            this.pushToCloud({ action: 'seed_init' });
           }
-          this.notifyListeners({ type: 'cloud_pulled', timestamp: Date.now() });
-          return true;
         }
+        return true;
+      } else {
+        this._lastCloudSyncStatus = 'offline';
       }
     } catch (err) {
       console.warn('Cloud sync fetch failed:', err);
+      this._lastCloudSyncStatus = 'offline';
     }
     return false;
   },
 
   checkCloudSync() {
-    const settings = this.getSettings();
-    if (settings.cloudSyncEnabled && settings.cloudSyncUrl) {
-      this.fetchFromCloud();
-      if (!this._syncPollingTimer) {
-        // Poll every 5 seconds for fast cross-device sync
-        this._syncPollingTimer = setInterval(() => {
-          this.fetchFromCloud();
-        }, 5000);
-      }
+    // Initial fetch from cloud
+    this.fetchFromCloud(true);
+
+    if (!this._syncPollingTimer) {
+      // Auto-poll cloud every 3.5 seconds so any changes made on another machine appear automatically
+      this._syncPollingTimer = setInterval(() => {
+        this.fetchFromCloud(false);
+      }, 3500);
     }
+  },
+
+  getSyncInfo() {
+    return {
+      status: this._lastCloudSyncStatus,
+      lastTime: this._lastCloudSyncTime,
+      url: (this.getSettings().cloudSyncUrl || this.DEFAULT_CLOUD_URL)
+    };
   },
 
   /* ─── Export / Import / Cross-Device Transfer ─── */

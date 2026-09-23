@@ -7,26 +7,119 @@ let editingContractId = null;
 let searchQuery = '';
 let currentSummaryTab = 'daily'; // 'daily' | 'weekly' | 'monthly'
 
-function initAdmin() {
-  if (!Auth.requireAdmin()) return;
+function checkAdminAccess() {
+  const isAuth = Auth.isAdmin();
+  const gatewayEl = document.getElementById('adminLoginGateway');
+  const workspaceEl = document.getElementById('adminWorkspace');
 
+  if (!isAuth) {
+    if (gatewayEl) gatewayEl.style.display = 'flex';
+    if (workspaceEl) workspaceEl.style.display = 'none';
+    setupAdminGatewayForm();
+    return false;
+  } else {
+    if (gatewayEl) gatewayEl.style.display = 'none';
+    if (workspaceEl) workspaceEl.style.display = 'block';
+    return true;
+  }
+}
+
+function setupAdminGatewayForm() {
+  const form = document.getElementById('adminGatewayForm');
+  if (!form || form._isSetup) return;
+  form._isSetup = true;
+
+  const toggleBtn = document.getElementById('toggleAdminGatewayPass');
+  const passInput = document.getElementById('adminPasswordInput');
+  if (toggleBtn && passInput) {
+    toggleBtn.onclick = () => {
+      const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passInput.setAttribute('type', type);
+      toggleBtn.textContent = type === 'password' ? '👁️' : '🙈';
+    };
+  }
+
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminEmailInput').value.trim();
+    const password = document.getElementById('adminPasswordInput').value;
+    const errorBox = document.getElementById('adminLoginError');
+    const errorText = document.getElementById('adminLoginErrorText');
+    const submitBtn = document.getElementById('adminGatewaySubmitBtn');
+
+    if (errorBox) errorBox.style.display = 'none';
+    if (submitBtn) submitBtn.classList.add('loading');
+
+    setTimeout(async () => {
+      const result = Auth.login(email, password);
+      if (result.success && result.type === 'admin') {
+        showToast('เข้าสู่ระบบหลังบ้านแอดมินสำเร็จ!', 'success');
+        if (submitBtn) submitBtn.classList.remove('loading');
+        // Fetch latest cloud data immediately
+        await FinanceDB.fetchFromCloud();
+        initAdminWorkspace();
+      } else {
+        if (submitBtn) submitBtn.classList.remove('loading');
+        if (errorBox) {
+          errorText.textContent = result.message || 'อีเมลหรือรหัสผ่านแอดมินไม่ถูกต้อง';
+          errorBox.style.display = 'flex';
+        }
+      }
+    }, 400);
+  };
+}
+
+function quickFillAdmin() {
+  const emailInput = document.getElementById('adminEmailInput');
+  const passInput = document.getElementById('adminPasswordInput');
+  if (emailInput) emailInput.value = 'admin@finance.com';
+  if (passInput) passInput.value = 'admin123';
+  const form = document.getElementById('adminGatewayForm');
+  if (form) {
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+  }
+}
+
+function handleAdminLogout() {
+  FinanceDB.clearSession();
+  checkAdminAccess();
+  showToast('ออกจากระบบหลังบ้านแอดมินเรียบร้อย', 'info');
+}
+
+function initAdmin() {
+  // If not logged in, show dedicated Admin Gateway right here on admin.html
+  if (!checkAdminAccess()) {
+    return;
+  }
+
+  initAdminWorkspace();
+}
+
+function initAdminWorkspace() {
+  checkAdminAccess();
   renderAdminHeader();
   updateSyncBanner();
   renderStats();
   renderToolbar();
   renderCustomerList();
 
-  // 2. Real-time Multi-Device Sync Listener
-  FinanceDB.onSync((event) => {
-    updateSyncBanner();
-    renderStats();
-    renderCustomerList();
-    // Auto-update dashboard if open
-    const summaryModal = document.getElementById('summaryDashboardModal');
-    if (summaryModal && summaryModal.classList.contains('active')) {
-      renderSummaryDashboardContent(currentSummaryTab);
-    }
-  });
+  // Multi-Device Cloud Sync Listener
+  if (!window._adminSyncListenerAttached) {
+    window._adminSyncListenerAttached = true;
+    FinanceDB.onSync((event) => {
+      updateSyncBanner();
+      renderStats();
+      renderCustomerList();
+      // Auto-update dashboard if open
+      const summaryModal = document.getElementById('summaryDashboardModal');
+      if (summaryModal && summaryModal.classList.contains('active')) {
+        renderSummaryDashboardContent(currentSummaryTab);
+      }
+      if (event && event.type === 'cloud_pulled' && !event.isInitial) {
+        showToast('⚡ ซิงค์ข้อมูลล่าสุดจากเครื่องอื่นเรียบร้อยแล้ว', 'info');
+      }
+    });
+  }
 }
 
 /* ─── Live Sync Status Banner (Multi-Device) ─── */
@@ -37,7 +130,7 @@ function updateSyncBanner() {
   const now = new Date();
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const settings = FinanceDB.getSettings();
-  const isCloud = settings.cloudSyncEnabled && settings.cloudSyncUrl;
+  const isCloud = settings.cloudSyncEnabled && (settings.cloudSyncUrl || FinanceDB.DEFAULT_CLOUD_URL);
 
   bannerEl.innerHTML = `
     <div class="admin-sync-banner">
@@ -45,14 +138,14 @@ function updateSyncBanner() {
         <span class="sync-dot"></span>
         <span>
           <strong>ระบบซิงค์ข้อมูลเรียลไทม์:</strong> เชื่อมต่อแล้ว ข้อมูลตรงกันทุกเครื่อง/หน้าจอ 
-          <span style="opacity:0.75;font-size:0.72rem;">(อัพเดทล่าสุด ${timeStr}${isCloud ? ' • Cloud Sync' : ' • Live Sync'})</span>
+          <span style="opacity:0.75;font-size:0.72rem;">(อัพเดทล่าสุด ${timeStr}${isCloud ? ' • Cloud Sync อัตโนมัติ' : ' • Live Sync'})</span>
         </span>
       </div>
       <div class="sync-actions">
         <button class="sync-refresh-btn" onclick="openSyncTransferModal()" title="ส่งข้อมูลไปมือถือ / ซิงค์ข้ามเครื่อง">
           📲 ซิงค์ข้ามเครื่อง
         </button>
-        <button class="sync-refresh-btn" onclick="triggerManualSync()" title="กดเพื่อดึงข้อมูลล่าสุดทันที">
+        <button class="sync-refresh-btn" onclick="triggerManualSync()" title="กดเพื่อดึงข้อมูลล่าสุดจากคลาวด์ทันที">
           🔄 ซิงค์ทันที
         </button>
       </div>
@@ -67,14 +160,14 @@ async function triggerManualSync() {
     if (dot) dot.classList.add('syncing');
   }
 
-  showToast('กำลังซิงค์ข้อมูลล่าสุด...', 'info');
+  showToast('กำลังซิงค์ข้อมูลล่าสุดจากคลาวด์...', 'info');
   await FinanceDB.fetchFromCloud();
   FinanceDB.notifyListeners({ type: 'manual_sync', timestamp: Date.now() });
 
   renderStats();
   renderCustomerList();
   updateSyncBanner();
-  showToast('ซิงค์ข้อมูลเรียบร้อยแล้ว!', 'success');
+  showToast('ซิงค์ข้อมูลเรียบร้อยแล้ว! ทุกเครื่องเห็นตรงกัน', 'success');
 }
 
 /* ─── Header ─── */
@@ -89,6 +182,9 @@ function renderAdminHeader() {
         </div>
       </div>
       <div class="admin-actions">
+        <a href="index.html" class="btn btn-secondary btn-sm" target="_blank" title="เปิดดูหน้าบ้านลูกค้า" style="text-decoration:none;">
+          🌐 ดูหน้าบ้านลูกค้า
+        </a>
         <button class="btn btn-secondary btn-sm" onclick="openSyncTransferModal()" title="ส่งข้อมูลไปมือถือ / ซิงค์ข้ามเครื่อง" style="background:rgba(217,119,6,0.15);color:var(--accent-light);border-color:var(--accent);">
           📲 ซิงค์ไปมือถือ
         </button>
@@ -98,7 +194,7 @@ function renderAdminHeader() {
         <button class="btn btn-secondary btn-sm" onclick="openSettingsModal()" title="ตั้งค่าข้อมูลติดต่อ, QR ร้าน & Bank API">
           ⚙️ ตั้งค่าระบบ
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="Auth.logout()" title="ออกจากระบบ">
+        <button class="btn btn-secondary btn-sm" onclick="handleAdminLogout()" title="ออกจากระบบแอดมิน">
           🚪 ออกจากระบบ
         </button>
       </div>
@@ -1389,64 +1485,63 @@ function openSyncTransferModal() {
   const customers = FinanceDB.getCustomers();
 
   body.innerHTML = `
-    <div style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:var(--radius-sm);padding:12px 14px;">
-      💡 <strong>ทำไมข้อมูลที่เพิ่มในคอมถึงยังไม่เห็นในมือถือ?</strong><br>
-      เนื่องจากระบบทำงานบนเบราว์เซอร์ของแต่ละเครื่อง (Client-Side) ข้อมูลที่เพิ่มบนคอมจึงถูกบันทึกไว้ในหน่วยความจำของคอมพิวเตอร์เท่านั้น หากต้องการให้มือถือเห็นข้อมูลชุดเดียวกันทั้งหมดทันที ท่านสามารถเลือกทำได้ <strong>3 วิธีง่ายๆ</strong> ด้านล่างนี้:
-    </div>
-
-    <!-- วิธีที่ 1: คัดลอกรหัสซิงค์ (ง่ายและเร็วที่สุด ส่งเข้า LINE ได้ทันที) -->
-    <div class="settings-section">
-      <div class="settings-section-title">📋 วิธีที่ 1: คัดลอกรหัสข้อมูล (Sync Code) — ส่งผ่าน LINE (แนะนำ ⚡)</div>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
-        1. บนคอมพิวเตอร์: กดปุ่ม <strong>"คัดลอกรหัสข้อมูล"</strong> ด้านล่าง แล้วนำข้อความนี้ไปส่งเข้า LINE ของคุณ<br>
-        2. บนมือถือ: เปิดเว็บนี้ในมือถือ กดปุ่ม "📲 ซิงค์ไปมือถือ" แล้วนำรหัสมาวางในช่องด้านล่าง แล้วกด <strong>"นำเข้ารหัสข้อมูล"</strong> ข้อมูลลูกค้าทั้งหมดจะมาครบ 100%!
+    <!-- สถานะการซิงค์แบบสด -->
+    <div style="font-size:0.84rem;color:#86efac;margin-bottom:16px;line-height:1.6;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:var(--radius-sm);padding:14px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:0.95rem;font-weight:700;color:var(--success);margin-bottom:4px;">
+        <span class="sync-dot" style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:50%;box-shadow:0 0 8px #22c55e;"></span>
+        ระบบซิงค์ข้อมูลผ่านคลาวด์เปิดทำงานแล้ว (Multi-Device Active)
+      </div>
+      <p style="color:var(--text-secondary);font-size:0.8rem;margin-top:4px;">
+        พนักงานแอดมินทุกคนไม่ว่าจะเข้าจากคอมพิวเตอร์เครื่องใด หรือเปิดผ่านมือถือ <strong>จะเห็นข้อมูลลูกค้าและสัญญาล่าสุดตรงกันทั้งหมดทันที</strong> เมื่อมีการเพิ่มหรือแก้ไขข้อมูล
       </p>
-      
-      <div style="display:flex;gap:10px;margin-bottom:12px;">
-        <button class="btn btn-primary btn-sm" onclick="copySyncCode()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
-          📋 คัดลอกรหัสข้อมูลลูกค้าทั้งหมด (${customers.length} คน)
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="triggerManualSync()" style="font-size:0.78rem;">
+          🔄 กดซิงค์ดึงข้อมูลล่าสุดเดี๋ยวนี้
         </button>
-      </div>
-
-      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--glass-border);">
-        <label class="form-label" style="font-weight:600;color:var(--accent-light);">📥 ช่องวางรหัสสำหรับเครื่องมือถือ (นำเข้าข้อมูล):</label>
-        <textarea id="transferSyncCodeInput" class="form-input" style="height:70px;font-size:0.75rem;font-family:monospace;" placeholder="วางรหัสข้อมูลยาวๆ ที่คัดลอกมาจากคอมพิวเตอร์ที่นี่..."></textarea>
-        <button class="btn btn-secondary btn-sm" onclick="applySyncCode()" style="margin-top:8px;width:100%;font-weight:600;background:rgba(16,185,129,0.15);color:var(--success);border-color:rgba(16,185,129,0.3);">
-          📥 กดยืนยันนำเข้ารหัสข้อมูลเข้าเครื่องนี้ทันที
+        <button class="btn btn-secondary btn-sm" onclick="testCloudConnection()" style="font-size:0.78rem;">
+          ⚡ ทดสอบเชื่อมต่อคลาวด์ (Ping Test)
         </button>
       </div>
     </div>
 
-    <!-- วิธีที่ 2: ไฟล์สำรองข้อมูล (Backup / Restore) -->
+    <!-- ส่วนตั้งค่า Cloud Sync URL / Firebase -->
     <div class="settings-section">
-      <div class="settings-section-title">📁 วิธีที่ 2: ดาวน์โหลดไฟล์สำรองข้อมูล (.json)</div>
+      <div class="settings-section-title">☁️ ที่อยู่ฐานข้อมูลคลาวด์กลาง (Cloud Sync URL)</div>
       <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
-        ดาวน์โหลดไฟล์ข้อมูลจากคอมพิวเตอร์ แล้วส่งไฟล์เข้ามือถือ หรือเก็บสำรองข้อมูลไว้บนเครื่อง
+        ปัจจุบันเชื่อมต่อกับคลาวด์กลางของระบบแล้ว หากบริษัทต้องการใช้ Firebase Realtime Database ของตนเอง สามารถใส่ URL แล้วกดบันทึกได้เลย
+      </p>
+      <div class="form-group">
+        <label class="form-label">Cloud Sync URL (สำหรับเชื่อมทุกเครื่องเข้าด้วยกัน)</label>
+        <input type="url" class="form-input" id="modalCloudSyncUrl" value="${settings.cloudSyncUrl || FinanceDB.DEFAULT_CLOUD_URL}">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="saveCloudSyncFromModal()" style="flex:1;">
+          💾 บันทึกที่อยู่คลาวด์
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="resetToDefaultCloud()" style="font-size:0.78rem;">
+          🔄 รีเซ็ตเป็นคลาวด์เริ่มต้น
+        </button>
+      </div>
+    </div>
+
+    <!-- สำรองข้อมูล / โอนย้ายแบบไฟล์ -->
+    <div class="settings-section">
+      <div class="settings-section-title">📁 สำรองข้อมูล & กู้คืนข้อมูล (Backup & Restore)</div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+        ดาวน์โหลดไฟล์ข้อมูลลูกค้าและสัญญาเก็บไว้ในเครื่องเพื่อความปลอดภัย หรือนำเข้าข้อมูล
       </p>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="downloadBackupFile()" style="flex:1;">
           💾 ดาวน์โหลดไฟล์สำรอง (.json)
         </button>
         <div class="btn btn-secondary btn-sm" style="flex:1;position:relative;overflow:hidden;text-align:center;">
-          📂 เลือกไฟล์เพื่อนำเข้า (.json)
+          📂 นำเข้าไฟล์สำรอง (.json)
           <input type="file" accept=".json" onchange="uploadRestoreFile(this)" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;">
         </div>
+        <button class="btn btn-secondary btn-sm" onclick="copySyncCode()" style="flex:1;">
+          📋 คัดลอก Sync Code ส่ง LINE
+        </button>
       </div>
-    </div>
-
-    <!-- วิธีที่ 3: ต่อ Cloud Database กลาง (อัตโนมัติตลอดเวลา) -->
-    <div class="settings-section">
-      <div class="settings-section-title">☁️ วิธีที่ 3: เชื่อมต่อ Firebase Realtime DB ฟรี (อัปเดตอัตโนมัติตลอดเวลา)</div>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
-        หากสร้างฐานข้อมูล Firebase Realtime Database ของ Google (ฟรี) แล้วนำ URL มาวางที่นี่ ทั้งคอมพิวเตอร์และมือถือจะอัปเดตข้อมูลตรงกันอัตโนมัติแบบเรียลไทม์ 24 ชม.
-      </p>
-      <div class="form-group">
-        <label class="form-label">Firebase Realtime DB URL (เช่น https://...firebaseio.com/finance.json)</label>
-        <input type="url" class="form-input" id="modalCloudSyncUrl" value="${settings.cloudSyncUrl || ''}" placeholder="https://your-project.firebaseio.com/finance.json">
-      </div>
-      <button class="btn btn-primary btn-sm" onclick="saveCloudSyncFromModal()" style="width:100%;">
-        💾 บันทึกการเชื่อมต่อ Cloud Sync
-      </button>
     </div>
 
     <div style="text-align:right;margin-top:16px;">
@@ -1458,6 +1553,25 @@ function openSyncTransferModal() {
   setTimeout(() => {
     modal.querySelector('.modal-content').style.transform = 'translateY(0)';
   }, 10);
+}
+
+async function testCloudConnection() {
+  showToast('กำลังทดสอบเชื่อมต่อฐานข้อมูลคลาวด์...', 'info');
+  const success = await FinanceDB.fetchFromCloud();
+  if (success) {
+    showToast('🟢 เชื่อมต่อคลาวด์สำเร็จ! ข้อมูลตรงกันทุกเครื่อง', 'success');
+  } else {
+    showToast('⚠️ ไม่สามารถเชื่อมต่อคลาวด์ได้ กรุณาตรวจสอบอินเทอร์เน็ตหรือ URL', 'error');
+  }
+}
+
+function resetToDefaultCloud() {
+  const input = document.getElementById('modalCloudSyncUrl');
+  if (input) input.value = FinanceDB.DEFAULT_CLOUD_URL;
+  FinanceDB.updateSettings({ cloudSyncUrl: FinanceDB.DEFAULT_CLOUD_URL, cloudSyncEnabled: true });
+  FinanceDB.fetchFromCloud();
+  showToast('รีเซ็ตเป็นคลาวด์เริ่มต้นเรียบร้อยแล้ว', 'success');
+  updateSyncBanner();
 }
 
 function closeSyncTransferModal() {
