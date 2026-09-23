@@ -115,9 +115,22 @@ const FinanceDB = {
     this.notifyListeners(message);
   },
 
+  /* ─── Cloud Sync (Firebase Realtime DB / REST API) ─── */
+  formatCloudUrl(url) {
+    if (!url) return '';
+    let trimmed = url.trim();
+    // Auto format Firebase Realtime DB URL
+    if (trimmed.includes('firebaseio.com') && !trimmed.endsWith('.json')) {
+      trimmed = trimmed.replace(/\/?$/, '/finance.json');
+    }
+    return trimmed;
+  },
+
   async pushToCloud(change) {
     const settings = this.getSettings();
     if (!settings.cloudSyncEnabled || !settings.cloudSyncUrl) return;
+
+    const url = this.formatCloudUrl(settings.cloudSyncUrl);
 
     try {
       const payload = {
@@ -127,7 +140,7 @@ const FinanceDB = {
         lastChange: change
       };
 
-      await fetch(settings.cloudSyncUrl, {
+      await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -144,8 +157,10 @@ const FinanceDB = {
     const settings = this.getSettings();
     if (!settings.cloudSyncEnabled || !settings.cloudSyncUrl) return false;
 
+    const url = this.formatCloudUrl(settings.cloudSyncUrl);
+
     try {
-      const res = await fetch(settings.cloudSyncUrl, {
+      const res = await fetch(url, {
         headers: {
           ...(settings.cloudSyncApiKey ? { 'Authorization': `Bearer ${settings.cloudSyncApiKey}` } : {})
         }
@@ -154,6 +169,16 @@ const FinanceDB = {
         const cloudData = await res.json();
         if (cloudData && cloudData.customers) {
           localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(cloudData.customers));
+          if (cloudData.settings) {
+            // Keep local cloud connection active
+            const mergedSettings = {
+              ...cloudData.settings,
+              cloudSyncEnabled: settings.cloudSyncEnabled,
+              cloudSyncUrl: settings.cloudSyncUrl,
+              cloudSyncApiKey: settings.cloudSyncApiKey
+            };
+            localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(mergedSettings));
+          }
           this.notifyListeners({ type: 'cloud_pulled', timestamp: Date.now() });
           return true;
         }
@@ -169,10 +194,64 @@ const FinanceDB = {
     if (settings.cloudSyncEnabled && settings.cloudSyncUrl) {
       this.fetchFromCloud();
       if (!this._syncPollingTimer) {
+        // Poll every 5 seconds for fast cross-device sync
         this._syncPollingTimer = setInterval(() => {
           this.fetchFromCloud();
-        }, 10000);
+        }, 5000);
       }
+    }
+  },
+
+  /* ─── Export / Import / Cross-Device Transfer ─── */
+  exportFullData() {
+    return {
+      customers: this.getCustomers(),
+      settings: this.getSettings(),
+      admin: this.getAdmin(),
+      exportDate: new Date().toISOString(),
+      app: 'FinancePro',
+      version: '2.0'
+    };
+  },
+
+  importFullData(dataObj) {
+    if (!dataObj || !Array.isArray(dataObj.customers)) return false;
+
+    localStorage.setItem(this.KEYS.CUSTOMERS, JSON.stringify(dataObj.customers));
+    if (dataObj.settings) {
+      localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(dataObj.settings));
+    }
+    if (dataObj.admin) {
+      localStorage.setItem(this.KEYS.ADMIN, JSON.stringify(dataObj.admin));
+    }
+    this.notifyChange('importedData', { timestamp: Date.now() });
+    return true;
+  },
+
+  getSyncCode() {
+    const data = this.exportFullData();
+    try {
+      return btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    } catch (e) {
+      return JSON.stringify(data);
+    }
+  },
+
+  importFromSyncCode(codeStr) {
+    if (!codeStr) return false;
+    try {
+      let parsed = null;
+      codeStr = codeStr.trim();
+      if (codeStr.startsWith('{')) {
+        parsed = JSON.parse(codeStr);
+      } else {
+        const jsonStr = decodeURIComponent(escape(atob(codeStr)));
+        parsed = JSON.parse(jsonStr);
+      }
+      return this.importFullData(parsed);
+    } catch (e) {
+      console.error('Failed to parse sync code:', e);
+      return false;
     }
   },
 

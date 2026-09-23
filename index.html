@@ -115,6 +115,17 @@
   <script src="js/data.js"></script>
   <script src="js/auth.js"></script>
   <script>
+    // Check if opened via sync link (?sync=...)
+    const urlParams = new URLSearchParams(window.location.search);
+    const syncParam = urlParams.get('sync');
+    if (syncParam) {
+      const imported = FinanceDB.importFromSyncCode(syncParam);
+      if (imported) {
+        alert('✅ ซิงค์ข้อมูลลูกค้าจากคอมพิวเตอร์เข้าสู่มือถือเรียบร้อยแล้ว!');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+
     // Check LINE callback
     if (Auth.handleLineCallback()) {
       // Handled

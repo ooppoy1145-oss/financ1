@@ -620,7 +620,6 @@
 .due-customers-list {
   display: flex;
   flex-direction: column;
-  divide-y: 1px solid var(--glass-border);
 }
 
 .due-customer-item {

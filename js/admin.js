@@ -49,6 +49,9 @@ function updateSyncBanner() {
         </span>
       </div>
       <div class="sync-actions">
+        <button class="sync-refresh-btn" onclick="openSyncTransferModal()" title="ส่งข้อมูลไปมือถือ / ซิงค์ข้ามเครื่อง">
+          📲 ซิงค์ข้ามเครื่อง
+        </button>
         <button class="sync-refresh-btn" onclick="triggerManualSync()" title="กดเพื่อดึงข้อมูลล่าสุดทันที">
           🔄 ซิงค์ทันที
         </button>
@@ -86,6 +89,9 @@ function renderAdminHeader() {
         </div>
       </div>
       <div class="admin-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openSyncTransferModal()" title="ส่งข้อมูลไปมือถือ / ซิงค์ข้ามเครื่อง" style="background:rgba(217,119,6,0.15);color:var(--accent-light);border-color:var(--accent);">
+          📲 ซิงค์ไปมือถือ
+        </button>
         <button class="btn btn-secondary btn-sm" onclick="openSummaryDashboardModal()" title="แดชบอร์ดสรุปยอด รายวัน/อาทิตย์/เดือน">
           📊 แดชบอร์ดสรุป
         </button>
@@ -1375,6 +1381,186 @@ function closeQuickStatusModal() {
   modal.classList.remove('active');
 }
 
+/* ─── 7. Sync & Transfer Modal (ส่งข้อมูลไปมือถือ & ซิงค์ข้ามเครื่อง) ─── */
+function openSyncTransferModal() {
+  const modal = document.getElementById('syncTransferModal');
+  const body = document.getElementById('syncTransferBody');
+  const settings = FinanceDB.getSettings();
+  const customers = FinanceDB.getCustomers();
+
+  body.innerHTML = `
+    <div style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;background:rgba(217,119,6,0.08);border:1px solid rgba(217,119,6,0.25);border-radius:var(--radius-sm);padding:12px 14px;">
+      💡 <strong>ทำไมข้อมูลที่เพิ่มในคอมถึงยังไม่เห็นในมือถือ?</strong><br>
+      เนื่องจากระบบทำงานบนเบราว์เซอร์ของแต่ละเครื่อง (Client-Side) ข้อมูลที่เพิ่มบนคอมจึงถูกบันทึกไว้ในหน่วยความจำของคอมพิวเตอร์เท่านั้น หากต้องการให้มือถือเห็นข้อมูลชุดเดียวกันทั้งหมดทันที ท่านสามารถเลือกทำได้ <strong>3 วิธีง่ายๆ</strong> ด้านล่างนี้:
+    </div>
+
+    <!-- วิธีที่ 1: คัดลอกรหัสซิงค์ (ง่ายและเร็วที่สุด ส่งเข้า LINE ได้ทันที) -->
+    <div class="settings-section">
+      <div class="settings-section-title">📋 วิธีที่ 1: คัดลอกรหัสข้อมูล (Sync Code) — ส่งผ่าน LINE (แนะนำ ⚡)</div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+        1. บนคอมพิวเตอร์: กดปุ่ม <strong>"คัดลอกรหัสข้อมูล"</strong> ด้านล่าง แล้วนำข้อความนี้ไปส่งเข้า LINE ของคุณ<br>
+        2. บนมือถือ: เปิดเว็บนี้ในมือถือ กดปุ่ม "📲 ซิงค์ไปมือถือ" แล้วนำรหัสมาวางในช่องด้านล่าง แล้วกด <strong>"นำเข้ารหัสข้อมูล"</strong> ข้อมูลลูกค้าทั้งหมดจะมาครบ 100%!
+      </p>
+      
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <button class="btn btn-primary btn-sm" onclick="copySyncCode()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;">
+          📋 คัดลอกรหัสข้อมูลลูกค้าทั้งหมด (${customers.length} คน)
+        </button>
+      </div>
+
+      <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--glass-border);">
+        <label class="form-label" style="font-weight:600;color:var(--accent-light);">📥 ช่องวางรหัสสำหรับเครื่องมือถือ (นำเข้าข้อมูล):</label>
+        <textarea id="transferSyncCodeInput" class="form-input" style="height:70px;font-size:0.75rem;font-family:monospace;" placeholder="วางรหัสข้อมูลยาวๆ ที่คัดลอกมาจากคอมพิวเตอร์ที่นี่..."></textarea>
+        <button class="btn btn-secondary btn-sm" onclick="applySyncCode()" style="margin-top:8px;width:100%;font-weight:600;background:rgba(16,185,129,0.15);color:var(--success);border-color:rgba(16,185,129,0.3);">
+          📥 กดยืนยันนำเข้ารหัสข้อมูลเข้าเครื่องนี้ทันที
+        </button>
+      </div>
+    </div>
+
+    <!-- วิธีที่ 2: ไฟล์สำรองข้อมูล (Backup / Restore) -->
+    <div class="settings-section">
+      <div class="settings-section-title">📁 วิธีที่ 2: ดาวน์โหลดไฟล์สำรองข้อมูล (.json)</div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+        ดาวน์โหลดไฟล์ข้อมูลจากคอมพิวเตอร์ แล้วส่งไฟล์เข้ามือถือ หรือเก็บสำรองข้อมูลไว้บนเครื่อง
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="downloadBackupFile()" style="flex:1;">
+          💾 ดาวน์โหลดไฟล์สำรอง (.json)
+        </button>
+        <div class="btn btn-secondary btn-sm" style="flex:1;position:relative;overflow:hidden;text-align:center;">
+          📂 เลือกไฟล์เพื่อนำเข้า (.json)
+          <input type="file" accept=".json" onchange="uploadRestoreFile(this)" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;">
+        </div>
+      </div>
+    </div>
+
+    <!-- วิธีที่ 3: ต่อ Cloud Database กลาง (อัตโนมัติตลอดเวลา) -->
+    <div class="settings-section">
+      <div class="settings-section-title">☁️ วิธีที่ 3: เชื่อมต่อ Firebase Realtime DB ฟรี (อัปเดตอัตโนมัติตลอดเวลา)</div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+        หากสร้างฐานข้อมูล Firebase Realtime Database ของ Google (ฟรี) แล้วนำ URL มาวางที่นี่ ทั้งคอมพิวเตอร์และมือถือจะอัปเดตข้อมูลตรงกันอัตโนมัติแบบเรียลไทม์ 24 ชม.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Firebase Realtime DB URL (เช่น https://...firebaseio.com/finance.json)</label>
+        <input type="url" class="form-input" id="modalCloudSyncUrl" value="${settings.cloudSyncUrl || ''}" placeholder="https://your-project.firebaseio.com/finance.json">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveCloudSyncFromModal()" style="width:100%;">
+        💾 บันทึกการเชื่อมต่อ Cloud Sync
+      </button>
+    </div>
+
+    <div style="text-align:right;margin-top:16px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeSyncTransferModal()">ปิดหน้าต่าง</button>
+    </div>
+  `;
+
+  modal.classList.add('active');
+  setTimeout(() => {
+    modal.querySelector('.modal-content').style.transform = 'translateY(0)';
+  }, 10);
+}
+
+function closeSyncTransferModal() {
+  const modal = document.getElementById('syncTransferModal');
+  modal.classList.remove('active');
+}
+
+function copySyncCode() {
+  const code = FinanceDB.getSyncCode();
+  if (!code) {
+    showToast('ไม่สามารถสร้างรหัสข้อมูลได้', 'error');
+    return;
+  }
+
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('คัดลอกรหัสข้อมูลเรียบร้อย! นำไปส่งใน LINE แล้วเปิดวางในมือถือได้เลย', 'success');
+  }).catch(() => {
+    // Fallback: prompt copy
+    prompt('คัดลอกรหัสข้อมูลด้านล่างนี้ไปวางในมือถือ:', code);
+  });
+}
+
+function applySyncCode() {
+  const textarea = document.getElementById('transferSyncCodeInput');
+  const code = textarea ? textarea.value.trim() : '';
+
+  if (!code) {
+    showToast('กรุณาวางรหัสข้อมูลก่อนกดนำเข้า', 'error');
+    return;
+  }
+
+  const success = FinanceDB.importFromSyncCode(code);
+  if (success) {
+    showToast('นำเข้าข้อมูลสำเร็จ! ข้อมูลตรงกับคอมพิวเตอร์เรียบร้อยแล้ว', 'success');
+    renderStats();
+    renderCustomerList();
+    closeSyncTransferModal();
+  } else {
+    showToast('รหัสข้อมูลไม่ถูกต้อง กรุณาตรวจสอบใหม่อีกครั้ง', 'error');
+  }
+}
+
+function downloadBackupFile() {
+  const data = FinanceDB.exportFullData();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `finance_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('ดาวน์โหลดไฟล์ข้อมูลเรียบร้อยแล้ว', 'success');
+}
+
+function uploadRestoreFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const success = FinanceDB.importFullData(parsed);
+      if (success) {
+        showToast('กู้คืนข้อมูลสำเร็จเรียบร้อย!', 'success');
+        renderStats();
+        renderCustomerList();
+        closeSyncTransferModal();
+      } else {
+        showToast('รูปแบบไฟล์ไม่ถูกต้อง', 'error');
+      }
+    } catch (err) {
+      showToast('ไม่สามารถอ่านไฟล์ JSON ได้', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function saveCloudSyncFromModal() {
+  const urlInput = document.getElementById('modalCloudSyncUrl');
+  const url = urlInput ? urlInput.value.trim() : '';
+
+  if (!url) {
+    FinanceDB.updateSettings({ cloudSyncEnabled: false, cloudSyncUrl: '' });
+    showToast('ปิดการเชื่อมต่อ Cloud Sync แล้ว', 'info');
+    closeSyncTransferModal();
+    updateSyncBanner();
+    return;
+  }
+
+  FinanceDB.updateSettings({
+    cloudSyncEnabled: true,
+    cloudSyncUrl: url
+  });
+
+  FinanceDB.checkCloudSync();
+  showToast('บันทึกและเปิดใช้งาน Cloud Sync เรียบร้อย!', 'success');
+  closeSyncTransferModal();
+  updateSyncBanner();
+}
+
 /* ─── Modal Controls ─── */
 function closeModal() {
   const modal = document.getElementById('customerModal');
@@ -1395,8 +1581,10 @@ document.addEventListener('click', (e) => {
     closeSettingsModal();
     closeSummaryDashboardModal();
     closeQuickStatusModal();
+    closeSyncTransferModal();
   }
 });
 
 document.addEventListener('DOMContentLoaded', initAdmin);
+
 

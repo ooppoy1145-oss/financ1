@@ -87,6 +87,20 @@
     </div>
   </div>
 
+  <!-- Sync & Transfer Modal (สำหรับส่งข้อมูลจากคอมพิวเตอร์ไปมือถือ) -->
+  <div class="modal-overlay admin-modal" id="syncTransferModal">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1.3rem;">📲</span>
+          <h3 class="modal-title">ส่งข้อมูลไปมือถือ & ซิงค์ข้ามอุปกรณ์</h3>
+        </div>
+        <button class="modal-close" onclick="closeSyncTransferModal()">✕</button>
+      </div>
+      <div class="modal-body" id="syncTransferBody"></div>
+    </div>
+  </div>
+
   <script src="js/data.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/bank-api.js"></script>
