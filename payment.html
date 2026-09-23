@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Finance Pro — ชำระเงิน</title>
+  <meta name="description" content="ชำระเงินค่างวดออนไลน์ผ่าน QR Code พร้อมเพย์">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/payment.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <div class="payment-page">
+    <div class="container">
+      <!-- Header -->
+      <div class="payment-header">
+        <a href="dashboard.html" class="back-btn">←</a>
+        <h1>ชำระเงิน</h1>
+      </div>
+
+      <!-- Payment Info -->
+      <div id="paymentInfo"></div>
+
+      <!-- QR Code -->
+      <div id="qrSection"></div>
+
+      <!-- Confirm -->
+      <div id="confirmSection"></div>
+    </div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div class="payment-success-overlay" id="successOverlay">
+    <div class="payment-success-content">
+      <div class="payment-success-icon">✅</div>
+      <h2>ชำระเงินสำเร็จ!</h2>
+      <p>กำลังกลับไปหน้าหลัก...</p>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/payment.js"></script>
+</body>
+</html>

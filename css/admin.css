@@ -1,0 +1,424 @@
+/* ============================================
+   Finance System — Admin Page Styles
+   ============================================ */
+
+.admin-page {
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* ─── Admin Header ─── */
+.admin-header {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 24px;
+}
+
+.admin-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-brand .logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.admin-brand h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.admin-brand span {
+  font-size: 0.75rem;
+  color: var(--accent);
+  display: block;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Stats Row ─── */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.admin-stat-card {
+  padding: 16px;
+  text-align: center;
+}
+
+.admin-stat-card .stat-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.admin-stat-card .stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.admin-stat-card.gold .stat-value {
+  color: var(--accent-light);
+}
+
+.admin-stat-card.green .stat-value {
+  color: var(--success);
+}
+
+.admin-stat-card.blue .stat-value {
+  color: var(--info);
+}
+
+/* ─── Search & Filter ─── */
+.admin-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-search {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.admin-search .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.admin-search input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+}
+
+.admin-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.admin-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.admin-add-btn {
+  width: auto !important;
+  white-space: nowrap;
+  padding: 12px 24px !important;
+}
+
+/* ─── Customer List ─── */
+.customer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.customer-card {
+  padding: 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.customer-card:hover {
+  border-color: var(--accent);
+  background: var(--glass-hover);
+}
+
+.customer-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.customer-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.customer-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.customer-card-info h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.customer-card-info p {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.customer-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.customer-card-actions button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.9rem;
+}
+
+.customer-card-actions button:hover {
+  background: var(--glass-hover);
+}
+
+.customer-card-actions button.delete:hover {
+  background: var(--error-bg);
+  color: var(--error);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.customer-card-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.customer-card-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.customer-card-detail .detail-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.customer-card-detail .detail-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.customer-card-detail .detail-value.gold {
+  color: var(--accent-light);
+}
+
+.customer-card-detail .detail-value.green {
+  color: var(--success);
+}
+
+/* ─── Admin Modal Overrides ─── */
+.admin-modal .modal-content {
+  max-width: 520px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  max-height: 92vh;
+}
+
+.admin-modal .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.admin-modal .form-group {
+  margin-bottom: 16px;
+}
+
+.admin-modal .form-label {
+  font-size: 0.82rem;
+}
+
+.admin-modal .form-input {
+  padding: 12px 14px;
+  font-size: 0.9rem;
+}
+
+/* Contract management in modal */
+.contract-management {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.contract-management h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.contract-mini-card {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.contract-mini-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.contract-mini-header h5 {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.contract-mini-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.contract-mini-stat {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.contract-mini-stat strong {
+  color: var(--text-secondary);
+}
+
+/* ─── Installment Management ─── */
+.installment-manage-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.installment-manage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--glass);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+}
+
+.installment-manage-item .inst-num {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  color: var(--text-muted);
+  width: 32px;
+}
+
+.installment-manage-item .inst-info {
+  flex: 1;
+}
+
+.installment-manage-item .inst-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.installment-manage-item select {
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.installment-manage-item select option {
+  background: var(--primary-dark);
+}
+
+/* Profile image upload */
+.profile-upload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.profile-upload-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-upload-btn input[type="file"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 380px) {
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-modal .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-card-details {
+    grid-template-columns: 1fr;
+  }
+}

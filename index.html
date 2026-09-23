@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Finance Pro — เข้าสู่ระบบ</title>
+  <meta name="description" content="ระบบจัดการไฟแนนซ์ออนไลน์ ตรวจสอบยอดผ่อน ชำระเงินง่ายๆ ผ่านมือถือ">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <div class="login-page">
+    <!-- Logo -->
+    <div class="login-logo">
+      <div class="logo-icon">💰</div>
+      <h1>Finance Pro</h1>
+      <p>ระบบจัดการไฟแนนซ์ออนไลน์ (Mobile & Admin)</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="glass-card login-card" id="loginCard">
+      <!-- Demo Accounts Helper -->
+      <div class="demo-accounts">
+        <div class="demo-title">⚡ บัญชีทดสอบด่วน (คลิกเพื่อกรอกอัตโนมัติ):</div>
+        <div class="demo-chips">
+          <button type="button" class="demo-chip admin" onclick="fillLogin('admin@finance.com', 'admin123')">
+            <span>👨‍💼 ผู้ดูแลระบบ (แอดมิน)</span>
+            <span class="chip-role">Admin</span>
+          </button>
+          <button type="button" class="demo-chip customer" onclick="fillLogin('somchai@test.com', '1234')">
+            <span>👤 สมชาย ใจดี (ผ่อนทอง + กู้เงิน)</span>
+            <span class="chip-role">ลูกค้า 1</span>
+          </button>
+          <button type="button" class="demo-chip customer" onclick="fillLogin('somying@test.com', '1234')">
+            <span>👤 สมหญิง รักดี (ผ่อน iPhone)</span>
+            <span class="chip-role">ลูกค้า 2</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div class="login-error" id="loginError">
+        <span>⚠️</span>
+        <span id="loginErrorText"></span>
+      </div>
+
+      <!-- Form -->
+      <form id="loginForm" autocomplete="off">
+        <!-- Email -->
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">อีเมล (Email)</label>
+          <div class="form-input-icon">
+            <span class="icon">📧</span>
+            <input 
+              type="email" 
+              class="form-input" 
+              id="loginEmail" 
+              placeholder="กรอกอีเมลของคุณ"
+              required
+              autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">รหัสผ่าน (Password)</label>
+          <div class="form-input-icon">
+            <span class="icon">🔒</span>
+            <input 
+              type="password" 
+              class="form-input" 
+              id="loginPassword" 
+              placeholder="กรอกรหัสผ่าน"
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" class="password-toggle" id="togglePassword" aria-label="แสดงรหัสผ่าน">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <!-- Login Button -->
+        <button type="submit" class="btn btn-primary login-btn" id="loginBtn">
+          <span class="btn-text">เข้าสู่ระบบ</span>
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="divider">
+        <span>หรือเข้าสู่ระบบด้วย</span>
+      </div>
+
+      <!-- LINE Login -->
+      <button type="button" class="btn btn-line" id="lineLoginBtn" onclick="openLineModal()">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+          <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+        </svg>
+        เข้าสู่ระบบผ่าน LINE
+      </button>
+
+      <!-- Admin Portal Link -->
+      <div class="admin-link-box">
+        <a href="admin.html" class="admin-link">
+          🔐 ลิงก์หลังบ้านสำหรับแอดมิน (Admin Portal) →
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p>© 2026 Finance Pro. All rights reserved.</p>
+    </div>
+  </div>
+
+  <!-- LINE Login Modal -->
+  <div class="modal-overlay" id="lineModal">
+    <div class="modal-content line-modal-content">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1.5rem;">🟢</span>
+          <h3 class="modal-title" style="color:#06C755;">เข้าสู่ระบบผ่าน LINE</h3>
+        </div>
+        <button class="modal-close" onclick="closeLineModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">
+          เลือกลูกค้าที่ต้องการจำลองการเข้าสู่ระบบผ่าน LINE:
+        </p>
+        <div id="lineCustomersList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // If already logged in, redirect
+    if (Auth.isLoggedIn()) {
+      if (Auth.isAdmin()) {
+        window.location.href = 'admin.html';
+      } else {
+        window.location.href = 'dashboard.html';
+      }
+    }
+
+    // Quick fill login fields
+    function fillLogin(email, password) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPassword').value = password;
+      showToast('กรอกข้อมูล: ' + email, 'info');
+    }
+
+    // LINE Login Modal
+    function openLineModal() {
+      const modal = document.getElementById('lineModal');
+      const listEl = document.getElementById('lineCustomersList');
+      const customers = FinanceDB.getCustomers();
+
+      if (customers.length === 0) {
+        listEl.innerHTML = '<p style="text-align:center;color:var(--text-muted);">ยังไม่มีลูกค้าในระบบ</p>';
+      } else {
+        let html = '';
+        customers.forEach(c => {
+          const avatar = c.profileImage || getDefaultAvatar(c.name);
+          html += `
+            <div class="line-user-item" onclick="loginWithLineCustomer('${c.id}')">
+              <img src="${avatar}" alt="${c.name}" class="line-user-avatar">
+              <div class="line-user-info">
+                <h4>${c.name}</h4>
+                <p>${c.email}</p>
+              </div>
+              <span class="btn btn-line btn-xs">เข้าสู่ระบบ</span>
+            </div>
+          `;
+        });
+        listEl.innerHTML = html;
+      }
+
+      modal.classList.add('active');
+    }
+
+    function closeLineModal() {
+      document.getElementById('lineModal').classList.remove('active');
+    }
+
+    function loginWithLineCustomer(customerId) {
+      const result = Auth.loginWithLine(customerId);
+      if (result.success) {
+        showToast('เข้าสู่ระบบผ่าน LINE สำเร็จ!', 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 500);
+      } else {
+        showToast(result.message, 'error');
+      }
+    }
+
+    // Close LINE modal on overlay click
+    document.getElementById('lineModal').addEventListener('click', (e) => {
+      if (e.target.id === 'lineModal') closeLineModal();
+    });
+
+    // Form submit
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const loginErrorText = document.getElementById('loginErrorText');
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      // Hide error
+      loginError.classList.remove('show');
+
+      // Loading state
+      loginBtn.classList.add('loading');
+
+      // Network delay simulation
+      setTimeout(() => {
+        const result = Auth.login(email, password);
+
+        if (result.success) {
+          showToast('เข้าสู่ระบบสำเร็จ!', 'success');
+          setTimeout(() => {
+            if (result.type === 'admin') {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'dashboard.html';
+            }
+          }, 500);
+        } else {
+          loginBtn.classList.remove('loading');
+          loginErrorText.textContent = result.message;
+          loginError.classList.add('show');
+
+          // Shake animation
+          const card = document.getElementById('loginCard');
+          card.style.animation = 'none';
+          card.offsetHeight;
+          card.style.animation = 'shake 0.5s ease-out';
+        }
+      }, 600);
+    });
+
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('loginPassword');
+
+    togglePassword.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePassword.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    // Add shake animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+        20%, 40%, 60%, 80% { transform: translateX(4px); }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

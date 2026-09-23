@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Finance Pro — แอดมิน</title>
+  <meta name="description" content="ระบบจัดการลูกค้าและสัญญาไฟแนนซ์ สำหรับผู้ดูแลระบบ">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+  <div class="admin-page">
+    <!-- Header -->
+    <header class="admin-header" id="adminHeader"></header>
+
+    <div class="container-wide">
+      <!-- Stats -->
+      <div class="admin-stats" id="adminStats"></div>
+
+      <!-- Toolbar -->
+      <div class="admin-toolbar" id="adminToolbar"></div>
+
+      <!-- Customer List -->
+      <div class="customer-list" id="customerList"></div>
+    </div>
+  </div>
+
+  <!-- Customer Modal -->
+  <div class="modal-overlay admin-modal" id="customerModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">เพิ่มลูกค้า</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Contract Modal -->
+  <div class="modal-overlay admin-modal" id="contractModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">เพิ่มสัญญา</h3>
+        <button class="modal-close" onclick="closeContractModal()">✕</button>
+      </div>
+      <div class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay admin-modal" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ ข้อมูลติดต่อเจ้าหน้าที่ & พร้อมเพย์</h3>
+        <button class="modal-close" onclick="closeSettingsModal()">✕</button>
+      </div>
+      <div class="modal-body" id="settingsModalBody"></div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
